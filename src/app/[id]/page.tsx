@@ -1,172 +1,141 @@
+import fs from "fs/promises";
+import path from "path";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
 import ReadButton from "@/components/bookDetails/ReadButton";
 import WishListButton from "@/components/bookDetails/WishListButton";
-import { IBook } from "@/types/books.type";
-import Image from "next/image";
+import type { IBook } from "@/types/books.type";
 
-interface IBookDetailsPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+const getBook = async (id: string): Promise<IBook | undefined> => {
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    "booksData.json"
+  );
 
-const getBooks = async (): Promise<IBook[]> => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/booksData.json`);
+  const file = await fs.readFile(filePath, "utf-8");
+  const books: IBook[] = JSON.parse(file);
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch books");
-  }
-
-  return res.json();
+  return books.find((item: IBook) => String(item.bookId) === id);
 };
 
 const BookDetailsPage = async ({
   params,
-}: IBookDetailsPageProps) => {
+}: {
+  params: Promise<{ id: string }>;
+}) => {
   const { id } = await params;
 
-  const booksData = await getBooks();
-
-  const book = booksData.find(
-    (item) => String(item.bookId) === String(id)
-  );
+  const book = await getBook(id);
 
   if (!book) {
-    return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold text-slate-900">
-          Book Not Found
-        </h1>
-
-        <p className="mt-3 text-slate-500">
-          Sorry, we could not find this book.
-        </p>
-      </div>
-    );
+    notFound();
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 lg:py-16">
-      <div className="card lg:card-side overflow-hidden border border-slate-200 bg-base-100 shadow-xl">
+    <main className="min-h-screen bg-slate-50 px-4 py-10">
+      <div className="mx-auto max-w-6xl">
+        <Link
+          href="/books"
+          className="mb-8 inline-block rounded-lg border border-slate-300 bg-white px-5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+        >
+          ← Back to Books
+        </Link>
 
-        {/* Image */}
-        <figure className="flex min-h-[550px] items-center justify-center bg-slate-100 p-8 sm:p-10 lg:min-h-[650px] lg:w-[45%]">
-          <div className="relative h-[500px] w-[340px] overflow-hidden rounded-2xl bg-white shadow-xl sm:h-[560px] sm:w-[380px] lg:h-[600px] lg:w-[410px]">
-            <Image
+        <div className="grid gap-8 rounded-2xl bg-white p-6 shadow-sm md:grid-cols-2 md:p-8">
+          <div className="flex items-center justify-center rounded-2xl bg-slate-100 p-6">
+            <img
               src={book.image}
               alt={book.bookName}
-              fill
-              sizes="(max-width: 640px) 340px, (max-width: 1024px) 380px, 410px"
-              className="object-contain p-3 transition-transform duration-500 hover:scale-105"
-              priority
+              className="max-h-[500px] w-full object-contain"
             />
           </div>
-        </figure>
 
-        {/* Details */}
-        <div className="card-body justify-center p-6 sm:p-8 lg:w-[55%] lg:p-10">
-
-          {/* Category + Rating */}
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-semibold text-indigo-600">
-              {book.category}
-            </span>
-
-            <span className="flex items-center gap-1 rounded-full bg-yellow-50 px-4 py-1.5 text-sm font-semibold text-yellow-600">
-              <span>★</span>
-              {book.rating}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h1 className="mt-4 text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
-            {book.bookName}
-          </h1>
-
-          {/* Author */}
-          <p className="mt-2 text-lg text-slate-500">
-            Written by{" "}
-            <span className="font-semibold text-slate-800">
-              {book.author}
-            </span>
-          </p>
-
-          {/* Tags */}
-          <div className="mt-5 flex flex-wrap gap-2">
-            {book.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600"
-              >
-                #{tag}
+          <div className="flex flex-col justify-center">
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="rounded-full bg-pink-100 px-3 py-1 text-sm font-medium text-pink-600">
+                {book.category}
               </span>
-            ))}
-          </div>
 
-          {/* Review */}
-          <div className="mt-6">
-            <h2 className="mb-2 text-lg font-semibold text-slate-900">
-              About This Book
-            </h2>
+              <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-700">
+                ⭐ {book.rating}
+              </span>
+            </div>
 
-            <p className="text-sm leading-7 text-slate-500 md:text-base">
-              {book.review}
+            <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
+              {book.bookName}
+            </h1>
+
+            <p className="mt-3 text-lg text-slate-600">
+              By {book.author}
             </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-slate-500">Total Pages</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {book.totalPages}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-slate-500">Publisher</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {book.publisher}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-slate-500">Published Year</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {book.yearOfPublishing}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-slate-500">Rating</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {book.rating}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Tags
+              </h2>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {book.tags.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-pink-50 px-3 py-1 text-sm text-pink-600"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Review
+              </h2>
+
+              <p className="mt-2 leading-7 text-slate-600">
+                {book.review}
+              </p>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              <ReadButton book={book} />
+              <WishListButton book={book} />
+            </div>
           </div>
-
-          {/* Information */}
-          <div className="mt-6 grid grid-cols-2 gap-4 border-y border-slate-200 py-5 sm:grid-cols-4">
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">
-                Pages
-              </p>
-
-              <p className="mt-1 text-lg font-bold text-slate-800">
-                {book.totalPages}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">
-                Published
-              </p>
-
-              <p className="mt-1 text-lg font-bold text-slate-800">
-                {book.yearOfPublishing}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">
-                Publisher
-              </p>
-
-              <p className="mt-1 truncate text-lg font-bold text-slate-800">
-                {book.publisher}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">
-                Rating
-              </p>
-
-              <p className="mt-1 text-lg font-bold text-slate-800">
-                {book.rating}/5
-              </p>
-            </div>
-
-          </div>
-
-          {/* Button */}
-          <div className="card-actions mt-6 justify-end">
-            <ReadButton book={book}/>
-            <WishListButton book={book}/>
-          </div>
-
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 
