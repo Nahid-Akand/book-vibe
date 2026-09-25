@@ -2,6 +2,8 @@
 import React from "react";
 import BookCard from "../shared/BookCard";
 import { IBook } from "@/types/books.type";
+import fs from "fs/promises";
+import path from "path";
 
 type Book = {
   bookId: number;
@@ -18,14 +20,15 @@ type Book = {
 };
 
 const getBooks = async (): Promise<Book[]> => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/booksData.json`);
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    "booksData.json"
+  );
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch books");
-  }
+  const file = await fs.readFile(filePath, "utf-8");
 
-  const data = await res.json();
-  return data;
+  return JSON.parse(file);
 };
 
 const Books = async () => {
